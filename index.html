@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漫畫風格天氣預報 💥</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Noto+Sans+TC:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        /* CSS 樣式：漫畫風格主題 - 背景修改 */
+        :root {
+            /* 漫畫風格主色調 */
+            --comic-red: #E91E63;
+            /* 活潑的洋紅色/紅 */
+            --comic-blue: #03A9F4;
+            /* 漫畫藍 */
+            --comic-yellow: #FFEB3B;
+            /* 爆炸黃 */
+            --paper-white: #F9F9F9;
+            /* 淺底色 */
+            --ink-black: #212121;
+            /* 粗邊框墨黑色 */
+            /* 漫畫陰影/描邊 */
+            --comic-border: 4px solid var(--ink-black);
+            --comic-shadow-red: 5px 5px 0 var(--comic-red);
+            --comic-shadow-blue: 5px 5px 0 var(--comic-blue);
+        }
+
+        /* 全域樣式與字體 */
+        body {
+            font-family: 'Bungee Inline', 'Noto Sans TC', sans-serif;
+            color: var(--ink-black);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            line-height: 1.4;
+
+            /* ====== 漫畫格子背景 (點陣半色調效果) ====== */
+            background-color: var(--paper-white);
+            /* 使用徑向漸變 (radial-gradient) 模擬點陣圖案 */
+            background-image:
+                radial-gradient(var(--ink-black) 10%, transparent 10%),
+                radial-gradient(var(--ink-black) 10%, transparent 10%);
+            /* 設置背景大小，控制點的大小和間距 */
+            background-size: 20px 20px;
+            /* 調整第二個背景的位置，使點交錯排列 */
+            background-position: 0 0, 10px 10px;
+            background-attachment: fixed;
+            /* ========================================= */
+        }
+
+        /* 通用漫畫邊框 mixin */
+        .comic-element {
+            border: var(--comic-border);
+            border-radius: 12px;
+            box-shadow: var(--comic-shadow-red);
+            transition: all 0.2s ease;
+        }
+
+        .weather-container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--comic-yellow);
+            /* 容器使用爆炸黃 */
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: center;
+            /* 繼承漫畫邊框和陰影 */
+            border: var(--comic-border);
+            border-radius: 15px;
+            box-shadow: var(--comic-shadow-red);
+            transform: rotate(-1deg);
+            /* 輕微傾斜，增加動感 */
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 標題與城市名稱 */
+        h1 {
+            color: var(--ink-black);
+            font-size: 3em;
+            margin-bottom: 5px;
+            font-weight: 900;
+            text-shadow: 3px 3px 0 var(--paper-white);
+        }
+
+        .city-name {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.8em;
+            color: var(--comic-red);
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        /* 主要時段區塊樣式 (醒目顯示) */
+        .current-forecast {
+            background-color: var(--comic-blue);
+            /* 醒目背景色：漫畫藍 */
+            color: var(--paper-white);
+            padding: 25px;
+            margin-bottom: 30px;
+
+            /* 漫畫風格：粗邊框和對比色陰影 */
+            border: var(--comic-border);
+            border-radius: 10px;
+            box-shadow: 6px 6px 0 var(--comic-red);
+
+            transition: transform 0.2s ease;
+            transform: translate(0);
+        }
+
+        .current-forecast:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: 9px 9px 0 var(--comic-red);
+        }
+
+        .time-header {
+            font-size: 2.2em;
+            font-weight: 900;
+            margin-bottom: 10px;
+            color: var(--comic-yellow);
+            text-shadow: 2px 2px 0 var(--ink-black);
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .weather-icon {
+            font-size: 8em;
+            display: block;
+            /* 漫畫風格震動動畫 */
+            animation: shake 0.5s infinite alternate;
+            text-shadow: 5px 5px 0 var(--comic-red);
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-1px, -1px) rotate(-0.5deg);
+            }
+        }
+
+        .temperature {
+            font-size: 5em;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--comic-yellow);
+            text-shadow: 3px 3px 0 var(--ink-black);
+        }
+
+        .weather-text {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--paper-white);
+            text-shadow: 1px 1px 0 var(--ink-black);
+        }
+
+        .details-current {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 15px;
+            font-size: 1.2em;
+            font-weight: 700;
+            background-color: var(--ink-black);
+            color: var(--paper-white);
+            padding: 8px 15px;
+            border-radius: 5px;
+            /* 爆炸邊框效果 */
+            clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 80% 100%, 20% 100%, 0% 70%);
+        }
+
+        .detail-item .label {
+            font-size: 0.7em;
+            opacity: 0.9;
+            font-weight: 400;
+            color: var(--comic-yellow);
+        }
+
+        /* 未來時段區塊樣式 */
+        .future-forecasts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .future-card {
+            background-color: var(--paper-white);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+
+            /* 繼承漫畫邊框，使用藍色陰影 */
+            border: var(--comic-border);
+            border-radius: 10px;
+            box-shadow: 4px 4px 0 var(--comic-blue);
+        }
+
+        .future-card:hover {
+            background-color: var(--comic-blue);
+            color: var(--paper-white);
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 var(--comic-red);
+        }
+
+        .future-card .time-period {
+            font-weight: 900;
+            font-size: 1.5em;
+            margin-bottom: 8px;
+            color: var(--comic-red);
+            text-shadow: 1px 1px 0 var(--paper-white);
+        }
+
+        .future-card:hover .time-period {
+            color: var(--comic-yellow);
+        }
+
+        .future-card .weather-icon-small {
+            font-size: 4em;
+            margin: 5px 0;
+            display: block;
+            transition: transform 0.2s ease;
+            transform: rotate(-5deg);
+        }
+
+        .future-card:hover .weather-icon-small {
+            transform: scale(1.1) rotate(0deg);
+        }
+
+        .future-card .temp-range {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .future-card .rain-chance {
+            font-size: 1.1em;
+            color: var(--comic-blue);
+            opacity: 0.9;
+        }
+
+        .future-card:hover .rain-chance {
+            color: var(--comic-yellow);
+        }
+
+        /* 錯誤訊息 */
+        .error-message {
+            color: var(--comic-red);
+            font-weight: 900;
+            margin-top: 20px;
+        }
+
+        /* 讀取中 */
+        .loading-spinner {
+            border: 5px solid var(--paper-white);
+            border-top: 5px solid var(--comic-red);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* RWD 調整 */
+        @media (max-width: 650px) {
+            .weather-container {
+                padding: 15px;
+                transform: rotate(0deg);
+            }
+
+            h1 {
+                font-size: 2.2em;
+            }
+
+            .city-name {
+                font-size: 1.4em;
+            }
+
+            .weather-main {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .temperature {
+                font-size: 4em;
+            }
+
+            .weather-icon {
+                font-size: 6em;
+            }
+
+            .details-current {
+                flex-direction: column;
+            }
+
+            .detail-item {
+                width: 70%;
+                margin: 5px auto;
+            }
+
+            .future-forecasts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="weather-container">
+        <h1>BAM! 天氣報到! 💥</h1>
+        <div class="city-name" id="city-name">漫畫報紙正在印刷中...</div>
+        <div class="loading-spinner" id="loading"></div>
+        <div id="weather-display" style="display:none;">
+            <div class="current-forecast" id="current-forecast">
+            </div>
+            <div class="future-forecasts" id="future-forecasts">
+            </div>
+        </div>
+        <div class="error-message" id="error-message" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://nutc-web-vic-peng.zeabur.app/api/weather/kaohsiung';
+        const currentForecastEl = document.getElementById('current-forecast');
+        const futureForecastsEl = document.getElementById('future-forecasts');
+        const cityNameEl = document.getElementById('city-name');
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error-message');
+        const weatherDisplayEl = document.getElementById('weather-display');
+
+        /** 根據天氣狀況文字判斷對應的 Emoji 圖標 */
+        function getWeatherIcon(weatherText) {
+            if (weatherText.includes('晴')) return '🌟';
+            if (weatherText.includes('多雲')) return '💨';
+            if (weatherText.includes('陰')) return '☁️';
+            if (weatherText.includes('雨')) return '💦';
+            if (weatherText.includes('雷')) return '⚡';
+            if (weatherText.includes('雪')) return '🥶';
+            if (weatherText.includes('霧')) return '🌫️';
+            return '❓';
+        }
+
+        /** 根據時間判斷時段描述 (早晨、下午、晚上) */
+        function getPeriodDescription(startTimeStr) {
+            const date = new Date(startTimeStr);
+            const hour = date.getHours();
+
+            if (hour >= 5 && hour < 12) return 'POW! 早晨行動!';
+            if (hour >= 12 && hour < 18) return 'WHAM! 下午出擊!';
+            return 'Zzz... 秘密基地休息';
+        }
+
+        /** 判斷當前時間是否落在給定的預報時段內 */
+        function isCurrentPeriod(startTimeStr, endTimeStr) {
+            const now = new Date();
+            const start = new Date(startTimeStr);
+            const end = new Date(endTimeStr);
+
+            if (isNaN(start) || isNaN(end)) return false;
+
+            return now >= start && now < end;
+        }
+
+        /** 渲染主要時段的天氣資訊 (Current) */
+        function renderCurrentForecast(forecast) {
+            const { startTime, weather, minTemp, maxTemp, rain, comfort } = forecast;
+            const period = getPeriodDescription(startTime);
+            const icon = getWeatherIcon(weather);
+
+            currentForecastEl.innerHTML = `
+                <div class="time-header">${period}</div>
+                <div class="weather-main">
+                    <span class="weather-icon">${icon}</span>
+                    <div>
+                        <div class="temperature">${maxTemp}</div>
+                    </div>
+                </div>
+                <p class="weather-text">${weather}</p>
+                
+                <div class="details-current">
+                    <div class="detail-item">
+                        <span class="label">高低溫</span>
+                        <span>${minTemp} / ${maxTemp}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">降雨危機</span>
+                        <span>💦 ${rain}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">舒適度</span>
+                        <span>${comfort}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        /** 渲染未來時段的天氣資訊 (Future) */
+        function renderFutureForecast(forecast) {
+            const { startTime, weather, minTemp, maxTemp, rain } = forecast;
+            const period = getPeriodDescription(startTime).replace(/!|\?|POW|WHAM|Zzz/g, '');
+            const icon = getWeatherIcon(weather);
+
+            const card = document.createElement('div');
+            card.className = 'future-card';
+            card.innerHTML = `
+                <div class="time-period">${period}</div>
+                <span class="weather-icon-small">${icon}</span>
+                <div class="temp-range">${minTemp} ~ ${maxTemp}</div>
+                <div class="rain-chance">降雨率: ${rain}</div>
+                <div class="weather-desc">${weather}</div>
+            `;
+            futureForecastsEl.appendChild(card);
+        }
+
+        /** 取得並渲染天氣資料 */
+        async function fetchWeather() {
+            loadingEl.style.display = 'block';
+            weatherDisplayEl.style.display = 'none';
+            errorEl.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                }
+                const json = await response.json();
+
+                if (!json.success || !json.data || !json.data.forecasts || json.data.forecasts.length === 0) {
+                    throw new Error('API 回傳資料格式錯誤或無預報資料。');
+                }
+
+                const forecasts = json.data.forecasts;
+                const city = json.data.city || '臺中市';
+
+                cityNameEl.textContent = `${city} | 英雄預報中心`;
+
+                currentForecastEl.innerHTML = '';
+                futureForecastsEl.innerHTML = '';
+
+                let currentFound = false;
+                const futureForecasts = [];
+                let mainForecast = null;
+
+                // 1. 尋找當前時段作為主要顯示區塊
+                for (let i = 0; i < forecasts.length; i++) {
+                    if (isCurrentPeriod(forecasts[i].startTime, forecasts[i].endTime)) {
+                        mainForecast = forecasts[i];
+                        currentFound = true;
+                        futureForecasts.push(...forecasts.slice(i + 1));
+                        break;
+                    }
+                }
+
+                // 2. 如果沒有找到，則將第一個時段設為主要顯示區塊 (Fallback)
+                if (!currentFound && forecasts.length > 0) {
+                    mainForecast = forecasts[0];
+                    futureForecasts.push(...forecasts.slice(1));
+                }
+
+                // 3. 渲染主時段和未來時段
+                if (mainForecast) {
+                    renderCurrentForecast(mainForecast);
+                } else {
+                    throw new Error('無法判斷主要天氣時段。');
+                }
+
+                futureForecasts.forEach(renderFutureForecast);
+
+                loadingEl.style.display = 'none';
+                weatherDisplayEl.style.display = 'block';
+
+            } catch (error) {
+                console.error('獲取天氣資料失敗:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = `🚨 WOOSH! 資料傳輸失敗，請聯繫英雄總部。 (${error.message})`;
+                errorEl.style.display = 'block';
+                cityNameEl.textContent = '❌ 資料錯誤';
+            }
+        }
+
+        // 頁面載入完成後執行
+        document.addEventListener('DOMContentLoaded', fetchWeather);
+
+    </script>
+</body>
+
+</html>
