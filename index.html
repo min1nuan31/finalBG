@@ -4,11 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>森之呼吸 天氣英雄站 🌿</title>
+    <title>天氣預報站 🌿</title>
     <link href="https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Noto+Sans+TC:wght@700;900&display=swap"
         rel="stylesheet">
+
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
         :root {
             --comic-green-dark: #2D5A27;
@@ -39,73 +41,118 @@
             border: var(--comic-border);
             border-radius: 20px;
             box-shadow: var(--comic-shadow);
-            text-align: center;
+            transform: rotate(-0.5deg);
         }
 
         .current-forecast {
-            background-color: white;
-            padding: 20px;
+            background: white;
             border: var(--comic-border);
+            padding: 20px;
             border-radius: 15px;
-            box-shadow: 5px 5px 0 var(--ink-black);
+            box-shadow: 6px 6px 0 var(--ink-black);
             margin-bottom: 25px;
+            text-align: center;
         }
 
-        .temperature {
-            font-size: 5em;
+        .main-temp {
+            font-size: 4.5rem;
             font-weight: 900;
             color: var(--comic-green-dark);
-            text-shadow: 3px 3px 0 var(--comic-green-soft);
+            line-height: 1;
         }
 
-        /* 圖表專用區塊 */
-        .chart-section {
+        .weather-icon {
+            font-size: 5rem;
+            animation: float 3s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* 圖表區塊 */
+        .chart-box {
             background: white;
             border: var(--comic-border);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 25px;
             box-shadow: 4px 4px 0 var(--ink-black);
+            height: 250px;
+        }
+
+        .export-btn {
+            background: var(--ink-black);
+            color: var(--comic-green-bright);
+            border: var(--comic-border);
+            padding: 12px;
+            width: 100%;
+            font-size: 1.2rem;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .export-btn:hover {
+            background: #E91E63;
+            color: white;
         }
 
         .future-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
         }
 
         .future-card {
             background: var(--comic-green-soft);
-            padding: 15px;
             border: var(--comic-border);
+            padding: 15px;
             border-radius: 10px;
+            text-align: center;
         }
     </style>
 </head>
 
 <body>
     <div id="app" class="weather-container">
-        <h1 style="font-size: 3em; -webkit-text-stroke: 1px var(--ink-black);">BAM! 氣溫觀測! 🌿</h1>
+        <h1 style="text-align:center; font-size:2.5rem; -webkit-text-stroke:1px var(--ink-black);">天氣預報 🌿</h1>
 
-        <div v-if="loading">英雄正在觀測數據中...</div>
+        <div v-if="loading" style="text-align:center;">掃描中...</div>
 
         <div v-else>
+            <div style="text-align:center; font-weight:900; margin-bottom:10px;">{{ cityName }}天氣狀況</div>
+
             <div class="current-forecast">
-                <div style="font-size: 1.5em; font-weight: 900;">{{ cityName }} | 目前天氣</div>
-                <div class="temperature">{{ mainForecast.maxTemp }}°C</div>
-                <div style="font-size: 1.2em; font-weight: 900;">{{ mainForecast.weather }}</div>
+                <div style="background:var(--ink-black); color:white; display:inline-block; padding:2px 10px;">{{
+                    getPeriod(mainForecast.startTime) }}</div>
+                <div class="weather-icon">{{ getEmoji(mainForecast.weather) }}</div>
+                <div class="main-temp">{{ mainForecast.maxTemp }}</div>
+                <div style="font-weight:900;">{{ mainForecast.weather }} | 降雨 {{ mainForecast.rain }}</div>
+                <div style="font-size:0.8rem; margin-top:5px;">{{ mainForecast.comfort }}</div>
             </div>
 
-            <div class="chart-section">
-                <h3 style="margin-top:0; color: var(--comic-green-dark);">24小時氣溫趨勢</h3>
+            <div class="chart-box">
                 <canvas id="tempChart"></canvas>
             </div>
 
+            <button class="export-btn" @click="exportCSV">下載天氣報告 💾</button>
+
             <div class="future-grid">
-                <div v-for="f in futureForecasts" :key="f.startTime" class="future-card">
-                    <div style="font-weight: 900;">{{ getShortTime(f.startTime) }}</div>
-                    <div style="font-size: 2.5em;">{{ getWeatherEmoji(f.weather) }}</div>
-                    <div style="font-weight: 900;">{{ f.minTemp }}~{{ f.maxTemp }}°C</div>
+                <div v-for="f in futureForecasts" class="future-card">
+                    <div style="font-weight:900; font-size:0.8rem;">{{ getPeriod(f.startTime).split(' ')[1] }}</div>
+                    <div style="font-size:2rem;">{{ getEmoji(f.weather) }}</div>
+                    <div style="font-weight:900;">{{ f.minTemp }}~{{ f.maxTemp }}</div>
                 </div>
             </div>
         </div>
@@ -121,64 +168,61 @@
                 const futureForecasts = ref([]);
                 const loading = ref(true);
 
-                const getWeatherEmoji = (text) => {
-                    if (text.includes('晴')) return '☀️';
-                    if (text.includes('雲')) return '☁️';
-                    if (text.includes('雨')) return '🌧️';
-                    return '🍃';
+                const getEmoji = (t) => t.includes('晴') ? '☀️' : (t.includes('雨') ? '🌧️' : '☁️');
+                const getPeriod = (t) => {
+                    const h = new Date(t).getHours();
+                    if (h < 12) return 'POW! 早晨';
+                    if (h < 18) return 'WHAM! 下午';
+                    return 'Zzz... 晚上';
                 };
 
-                const getShortTime = (timeStr) => new Date(timeStr).getHours() + ":00";
+                // CSV 匯出邏輯 (加分項)
+                const exportCSV = () => {
+                    let csv = "\uFEFF時段,最高溫,天氣\n";
+                    [mainForecast.value, ...futureForecasts.value].forEach(f => {
+                        csv += `${getPeriod(f.startTime)},${f.maxTemp},${f.weather}\n`;
+                    });
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'weather.csv';
+                    a.click();
+                };
 
-                // 初始化 Chart.js 圖表
+                // 圖表邏輯 (加分項)
                 const initChart = (data) => {
-                    const ctx = document.getElementById('tempChart').getContext('2d');
+                    const ctx = document.getElementById('tempChart');
                     new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: data.map(f => getShortTime(f.startTime)),
+                            labels: data.map(f => getPeriod(f.startTime).split(' ')[1]),
                             datasets: [{
-                                label: '氣溫 (°C)',
-                                data: data.map(f => f.maxTemp),
+                                label: '氣溫',
+                                data: data.map(f => parseInt(f.maxTemp)),
                                 borderColor: '#2D5A27',
-                                backgroundColor: 'rgba(124, 255, 107, 0.3)',
-                                borderWidth: 5,
-                                pointBackgroundColor: '#E91E63', // 亮粉色點增加對比
+                                backgroundColor: 'rgba(124, 255, 107, 0.4)',
                                 fill: true,
-                                tension: 0.4 // 讓曲線平滑
+                                borderWidth: 4
                             }]
                         },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: false, grid: { color: '#eee' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
+                        options: { responsive: true, maintainAspectRatio: false }
                     });
                 };
 
-                const fetchData = async () => {
-                    try {
-                        const res = await fetch('https://nutc-web-vic-peng.zeabur.app/api/weather/kaohsiung');
-                        const json = await res.json();
-                        cityName.value = json.data.city;
-                        mainForecast.value = json.data.forecasts[0];
-                        futureForecasts.value = json.data.forecasts;
-                        loading.value = false;
-
-                        // 關鍵：必須等待 Vue 渲染完 DOM 後才能抓取畫布
-                        await nextTick();
-                        initChart(json.data.forecasts);
-                    } catch (e) {
-                        console.error("Fetch Error");
-                        loading.value = false;
-                    }
+                const loadData = async () => {
+                    const res = await fetch('https://nutc-web-vic-peng.zeabur.app/api/weather/kaohsiung');
+                    const json = await res.json();
+                    cityName.value = json.data.city;
+                    mainForecast.value = json.data.forecasts[0];
+                    futureForecasts.value = json.data.forecasts.slice(1);
+                    loading.value = false;
+                    await nextTick();
+                    initChart(json.data.forecasts);
                 };
 
-                onMounted(fetchData);
-                return { cityName, mainForecast, futureForecasts, loading, getWeatherEmoji, getShortTime };
+                onMounted(loadData);
+                return { cityName, mainForecast, futureForecasts, loading, getEmoji, getPeriod, exportCSV };
             }
         }).mount('#app');
     </script>
