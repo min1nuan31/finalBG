@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> 天氣預報 🌿</title>
+    <title>森之呼吸 天氣英雄站 🌿</title>
     <link href="https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Noto+Sans+TC:wght@700;900&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -12,15 +12,10 @@
     <style>
         :root {
             --comic-green-dark: #2D5A27;
-            /* 深墨綠邊框 */
             --comic-green-bright: #7CFF6B;
-            /* 螢光綠/爆炸綠 */
             --comic-green-soft: #C8E6C9;
-            /* 淺草綠 */
             --paper-white: #F1F8E9;
-            /* 偏綠的白 */
             --ink-black: #1B2E1A;
-            /* 極深綠墨水 */
             --comic-border: 4px solid var(--ink-black);
             --comic-shadow: 6px 6px 0 var(--comic-green-dark);
         }
@@ -63,7 +58,7 @@
             text-shadow: 3px 3px 0 var(--comic-green-soft);
         }
 
-        /* 圖表容器樣式 */
+        /* 圖表專用區塊 */
         .chart-section {
             background: white;
             border: var(--comic-border);
@@ -84,38 +79,31 @@
             padding: 15px;
             border: var(--comic-border);
             border-radius: 10px;
-            transition: 0.2s;
-        }
-
-        .future-card:hover {
-            transform: scale(1.05) rotate(2deg);
-            background: white;
         }
     </style>
 </head>
 
 <body>
     <div id="app" class="weather-container">
-        <h1 style="font-size: 3em; -webkit-text-stroke: 1px var(--ink-black);">天氣預報</h1>
-        <div style="font-size: 1.5em; margin-bottom: 20px; font-weight: 900;">{{ cityName }} 天氣</div>
+        <h1 style="font-size: 3em; -webkit-text-stroke: 1px var(--ink-black);">BAM! 氣溫觀測! 🌿</h1>
 
-        <div v-if="loading">正在觀測風向...</div>
+        <div v-if="loading">英雄正在觀測數據中...</div>
 
         <div v-else>
             <div class="current-forecast">
-                <div style="font-size: 1.8em; color: var(--comic-green-dark);">{{ mainForecast.weather }}</div>
+                <div style="font-size: 1.5em; font-weight: 900;">{{ cityName }} | 目前天氣</div>
                 <div class="temperature">{{ mainForecast.maxTemp }}°C</div>
-                <div style="font-weight: 900;">舒適度：{{ mainForecast.comfort }}</div>
+                <div style="font-size: 1.2em; font-weight: 900;">{{ mainForecast.weather }}</div>
             </div>
 
             <div class="chart-section">
-                <h3 style="margin-top:0;">溫度趨勢分析圖</h3>
+                <h3 style="margin-top:0; color: var(--comic-green-dark);">24小時氣溫趨勢</h3>
                 <canvas id="tempChart"></canvas>
             </div>
 
             <div class="future-grid">
-                <div v-for="f in futureForecasts" class="future-card">
-                    <div style="font-size: 1.2em; font-weight: 900;">{{ getShortTime(f.startTime) }}</div>
+                <div v-for="f in futureForecasts" :key="f.startTime" class="future-card">
+                    <div style="font-weight: 900;">{{ getShortTime(f.startTime) }}</div>
                     <div style="font-size: 2.5em;">{{ getWeatherEmoji(f.weather) }}</div>
                     <div style="font-weight: 900;">{{ f.minTemp }}~{{ f.maxTemp }}°C</div>
                 </div>
@@ -140,12 +128,9 @@
                     return '🍃';
                 };
 
-                const getShortTime = (timeStr) => {
-                    const hour = new Date(timeStr).getHours();
-                    return hour + ":00";
-                };
+                const getShortTime = (timeStr) => new Date(timeStr).getHours() + ":00";
 
-                // 初始化圖表
+                // 初始化 Chart.js 圖表
                 const initChart = (data) => {
                     const ctx = document.getElementById('tempChart').getContext('2d');
                     new Chart(ctx, {
@@ -153,20 +138,21 @@
                         data: {
                             labels: data.map(f => getShortTime(f.startTime)),
                             datasets: [{
-                                label: '最高溫度 (°C)',
+                                label: '氣溫 (°C)',
                                 data: data.map(f => f.maxTemp),
                                 borderColor: '#2D5A27',
-                                backgroundColor: 'rgba(124, 255, 107, 0.2)',
-                                borderWidth: 4,
+                                backgroundColor: 'rgba(124, 255, 107, 0.3)',
+                                borderWidth: 5,
+                                pointBackgroundColor: '#E91E63', // 亮粉色點增加對比
                                 fill: true,
-                                tension: 0.4
+                                tension: 0.4 // 讓曲線平滑
                             }]
                         },
                         options: {
                             responsive: true,
                             plugins: { legend: { display: false } },
                             scales: {
-                                y: { beginAtZero: false },
+                                y: { beginAtZero: false, grid: { color: '#eee' } },
                                 x: { grid: { display: false } }
                             }
                         }
@@ -180,19 +166,18 @@
                         cityName.value = json.data.city;
                         mainForecast.value = json.data.forecasts[0];
                         futureForecasts.value = json.data.forecasts;
-
                         loading.value = false;
 
-                        // 等待 Vue 渲染完 DOM 後再初始化圖表
+                        // 關鍵：必須等待 Vue 渲染完 DOM 後才能抓取畫布
                         await nextTick();
                         initChart(json.data.forecasts);
                     } catch (e) {
-                        console.error("資料獲取失敗");
+                        console.error("Fetch Error");
+                        loading.value = false;
                     }
                 };
 
                 onMounted(fetchData);
-
                 return { cityName, mainForecast, futureForecasts, loading, getWeatherEmoji, getShortTime };
             }
         }).mount('#app');
